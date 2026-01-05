@@ -1,0 +1,190 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Core Entities
+enum Role {
+  ADMIN
+  MANAGER
+  STAFF
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  name      String
+  role      Role     @default(STAFF)
+  branchId  String?
+  branch    Branch?  @relation(fields: [branchId], references: [id], onDelete: SetNull)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([branchId])
+}
+
+model Branch {
+  id        String   @id @default(uuid())
+  name      String
+  address   String?
+  phone     String?
+  email     String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  users       User[]
+  employees   Employee[]
+  attendances Attendance[]
+  payrolls    Payroll[]
+  employeeRights EmployeeRights[]
+  incomes     Income[]
+  expenses    Expense[]
+  sales       Sale[]
+}
+
+// HRM Entities
+model Employee {
+  id           String   @id @default(uuid())
+  name         String
+  email        String?  @unique
+  phone        String?
+  position     String?
+  salary       Decimal  @db.Decimal(10, 2)
+  startDate    DateTime
+  status       String   @default("active") // active, inactive
+  branchId     String
+  branch       Branch   @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  attendances    Attendance[]
+  payrolls       Payroll[]
+  employeeRights EmployeeRights[]
+
+  @@index([branchId])
+  @@index([status])
+}
+
+model Attendance {
+  id         String   @id @default(uuid())
+  employeeId String
+  employee   Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  branchId   String
+  branch     Branch   @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  date       DateTime @db.Date
+  status     String   // present, absent, late
+  notes      String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([employeeId, date])
+  @@index([branchId])
+  @@index([date])
+}
+
+model Payroll {
+  id            String   @id @default(uuid())
+  employeeId    String
+  employee      Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  branchId      String
+  branch        Branch   @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  month         Int      // 1-12
+  year          Int
+  baseSalary    Decimal  @db.Decimal(10, 2)
+  adjustments   Decimal  @default(0) @db.Decimal(10, 2) // advance, deduction
+  bonuses       Decimal  @default(0) @db.Decimal(10, 2)
+  total         Decimal  @db.Decimal(10, 2)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([employeeId, month, year])
+  @@index([branchId])
+  @@index([year, month])
+}
+
+model EmployeeRights {
+  id              String   @id @default(uuid())
+  employeeId      String
+  employee        Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  branchId        String
+  branch          Branch   @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  year            Int
+  yearlyLeave     Decimal  @default(0) @db.Decimal(10, 2)
+  endOfService    Decimal  @default(0) @db.Decimal(10, 2)
+  benefits        Decimal  @default(0) @db.Decimal(10, 2)
+  paid            Decimal  @default(0) @db.Decimal(10, 2)
+  remaining       Decimal  @default(0) @db.Decimal(10, 2)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([employeeId, year])
+  @@index([branchId])
+}
+
+// Accounting Entities
+model Income {
+  id          String   @id @default(uuid())
+  branchId    String
+  branch      Branch   @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  amount      Decimal  @db.Decimal(10, 2)
+  date        DateTime @db.Date
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([branchId])
+  @@index([date])
+}
+
+model ExpenseCategory {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  description String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  expenses Expense[]
+}
+
+model Expense {
+  id          String          @id @default(uuid())
+  branchId    String
+  branch      Branch          @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  categoryId  String
+  category    ExpenseCategory @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  amount      Decimal         @db.Decimal(10, 2)
+  date        DateTime        @db.Date
+  description String?
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  @@index([branchId])
+  @@index([date])
+  @@index([categoryId])
+}
+
+// Sales Entities
+model Sale {
+  id        String   @id @default(uuid())
+  branchId  String
+  branch    Branch   @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  amount    Decimal  @db.Decimal(10, 2)
+  profit    Decimal  @db.Decimal(10, 2)
+  date      DateTime @db.Date
+  note      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([branchId])
+  @@index([date])
+}

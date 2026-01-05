@@ -1,0 +1,26 @@
+# Render.com configuration
+services:
+  - type: web
+    name: alfadli-hrm-api
+    env: node
+    region: frankfurt
+    plan: free
+    buildCommand: npm install && npx prisma generate && npm run build
+    startCommand: npx prisma migrate deploy && npm run start:prod
+    healthCheckPath: /
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: FRONTEND_URL
+        sync: false
+
+databases:
+  - name: alfadli-hrm-db
+    plan: free
+    databaseName: alfadli_hrm
+    user: alfadli
+

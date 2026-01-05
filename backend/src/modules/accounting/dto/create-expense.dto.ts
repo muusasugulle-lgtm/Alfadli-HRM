@@ -1,0 +1,24 @@
+import { IsString, IsNumber, IsDateString, IsOptional } from 'class-validator';
+import { Type } from 'class-transformer';
+
+export class CreateExpenseDto {
+  @IsString()
+  branchId: string;
+
+  @IsString()
+  categoryId: string;
+
+  @IsNumber()
+  @Type(() => Number)
+  amount: number;
+
+  @IsDateString()
+  date: string;
+
+  @IsOptional()
+  @IsString()
+  description?: string;
+}
+
+
+
