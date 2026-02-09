@@ -9,7 +9,7 @@
     "node": ">=18.0.0"
   },
   "scripts": {
-    "build": "npx @nestjs/cli build",
+    "build": "tsc -p tsconfig.build.json",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "start": "npx @nestjs/cli start",
     "start:dev": "npx @nestjs/cli start --watch",
@@ -30,6 +30,7 @@
   "dependencies": {
     "@nestjs/cli": "^11.0.0",
     "@nestjs/common": "^11.0.1",
+    "typescript": "^5.7.3",
     "@nestjs/config": "^4.0.2",
     "@nestjs/core": "^11.0.1",
     "@nestjs/jwt": "^11.0.2",
