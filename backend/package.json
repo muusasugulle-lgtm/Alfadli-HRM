@@ -24,6 +24,7 @@
     "seed": "ts-node -r dotenv/config -r tsconfig-paths/register src/seed.ts",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate deploy",
+    "prisma:push": "prisma db push",
     "postinstall": "prisma generate"
   },
   "dependencies": {
