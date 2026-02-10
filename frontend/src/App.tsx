@@ -11,6 +11,7 @@ import Payroll from './pages/hrm/Payroll';
 import Branches from './pages/branches/Branches';
 import Accounting from './pages/accounting/Accounting';
 import Sales from './pages/sales/Sales';
+import Users from './pages/users/Users';
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, loading } = useAuth();
@@ -43,6 +44,7 @@ function App() {
           <Route path="payroll" element={<Payroll />} />
           <Route path="accounting" element={<Accounting />} />
           <Route path="sales" element={<Sales />} />
+          <Route path="users" element={<Users />} />
         </Route>
       </Routes>
     </BrowserRouter>

@@ -4,7 +4,7 @@ import { branchesService, Branch } from '../../services/branches.service';
 import { useAuth } from '../../hooks/useAuth';
 
 export default function Employees() {
-  const { isAdmin, canWrite } = useAuth();
+  const { isAdmin, canWrite, user } = useAuth();
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [branches, setBranches] = useState<Branch[]>([]);
   const [loading, setLoading] = useState(true);
@@ -17,11 +17,10 @@ export default function Employees() {
     email: '',
     phone: '',
     position: '',
-    department: '',
     salary: 0,
-    branchId: '',
-    hireDate: new Date().toISOString().split('T')[0],
+    startDate: new Date().toISOString().split('T')[0],
     status: 'active',
+    branchId: '',
   });
 
   useEffect(() => {
@@ -64,11 +63,25 @@ export default function Employees() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError(null);
+    
     try {
+      // Prepare data with proper types
+      const submitData: CreateEmployeeDto = {
+        name: formData.name,
+        email: formData.email || undefined,
+        phone: formData.phone || undefined,
+        position: formData.position || undefined,
+        salary: Number(formData.salary),
+        startDate: formData.startDate,
+        status: formData.status,
+        branchId: formData.branchId,
+      };
+
       if (editingEmployee) {
-        await employeesService.update(editingEmployee.id, formData);
+        await employeesService.update(editingEmployee.id, submitData);
       } else {
-        await employeesService.create(formData);
+        await employeesService.create(submitData);
       }
       setShowModal(false);
       setEditingEmployee(null);
@@ -85,11 +98,10 @@ export default function Employees() {
       email: '',
       phone: '',
       position: '',
-      department: '',
       salary: 0,
-      branchId: branches[0]?.id || '',
-      hireDate: new Date().toISOString().split('T')[0],
+      startDate: new Date().toISOString().split('T')[0],
       status: 'active',
+      branchId: branches[0]?.id || '',
     });
   };
 
@@ -100,11 +112,10 @@ export default function Employees() {
       email: employee.email || '',
       phone: employee.phone || '',
       position: employee.position || '',
-      department: employee.department || '',
-      salary: employee.salary || 0,
-      branchId: employee.branchId,
-      hireDate: employee.hireDate?.split('T')[0] || '',
+      salary: Number(employee.salary) || 0,
+      startDate: employee.startDate?.split('T')[0] || new Date().toISOString().split('T')[0],
       status: employee.status,
+      branchId: employee.branchId,
     });
     setShowModal(true);
   };
@@ -131,8 +142,7 @@ export default function Employees() {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'active': return 'bg-green-100 text-green-800';
-      case 'inactive': return 'bg-yellow-100 text-yellow-800';
-      case 'terminated': return 'bg-red-100 text-red-800';
+      case 'inactive': return 'bg-red-100 text-red-800';
       default: return 'bg-gray-100 text-gray-800';
     }
   };
@@ -150,16 +160,18 @@ export default function Employees() {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
         <h1 className="text-3xl font-bold text-gray-900">Employees</h1>
         <div className="flex gap-3 w-full sm:w-auto">
-          <select
-            value={selectedBranch}
-            onChange={(e) => setSelectedBranch(e.target.value)}
-            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          >
-            <option value="">All Branches</option>
-            {branches.map((branch) => (
-              <option key={branch.id} value={branch.id}>{branch.name}</option>
-            ))}
-          </select>
+          {isAdmin && (
+            <select
+              value={selectedBranch}
+              onChange={(e) => setSelectedBranch(e.target.value)}
+              className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            >
+              <option value="">All Branches</option>
+              {branches.map((branch) => (
+                <option key={branch.id} value={branch.id}>{branch.name}</option>
+              ))}
+            </select>
+          )}
           {canWrite && (
             <button
               onClick={openAddModal}
@@ -232,6 +244,9 @@ export default function Employees() {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Salary
                   </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Start Date
+                  </th>
                   {canWrite && (
                     <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Actions
@@ -251,13 +266,12 @@ export default function Employees() {
                         </div>
                         <div className="ml-4">
                           <div className="text-sm font-medium text-gray-900">{employee.name}</div>
-                          <div className="text-sm text-gray-500">{employee.email}</div>
+                          <div className="text-sm text-gray-500">{employee.email || employee.phone || '-'}</div>
                         </div>
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm text-gray-900">{employee.position || '-'}</div>
-                      <div className="text-sm text-gray-500">{employee.department || '-'}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {employee.branch?.name || '-'}
@@ -268,7 +282,10 @@ export default function Employees() {
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {employee.salary ? `$${employee.salary.toLocaleString()}` : '-'}
+                      ${Number(employee.salary).toLocaleString()}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {employee.startDate ? new Date(employee.startDate).toLocaleDateString() : '-'}
                     </td>
                     {canWrite && (
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
@@ -315,6 +332,12 @@ export default function Employees() {
             </div>
             
             <form onSubmit={handleSubmit} className="p-6 space-y-4">
+              {error && (
+                <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+                  {error}
+                </div>
+              )}
+              
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -388,24 +411,13 @@ export default function Employees() {
                 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Department
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.department}
-                    onChange={(e) => setFormData({ ...formData, department: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="e.g. Engineering"
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Salary
+                    Salary *
                   </label>
                   <input
                     type="number"
+                    required
                     min="0"
+                    step="0.01"
                     value={formData.salary}
                     onChange={(e) => setFormData({ ...formData, salary: parseFloat(e.target.value) || 0 })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -415,17 +427,18 @@ export default function Employees() {
                 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Hire Date
+                    Start Date *
                   </label>
                   <input
                     type="date"
-                    value={formData.hireDate}
-                    onChange={(e) => setFormData({ ...formData, hireDate: e.target.value })}
+                    required
+                    value={formData.startDate}
+                    onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
                 </div>
                 
-                <div className="md:col-span-2">
+                <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Status
                   </label>
@@ -436,7 +449,6 @@ export default function Employees() {
                   >
                     <option value="active">Active</option>
                     <option value="inactive">Inactive</option>
-                    <option value="terminated">Terminated</option>
                   </select>
                 </div>
               </div>

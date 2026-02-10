@@ -10,6 +10,7 @@ import { AttendanceModule } from './modules/attendance/attendance.module';
 import { PayrollModule } from './modules/payroll/payroll.module';
 import { AccountingModule } from './modules/accounting/accounting.module';
 import { SalesModule } from './modules/sales/sales.module';
+import { UsersModule } from './modules/users/users.module';
 
 @Module({
   imports: [
@@ -23,6 +24,7 @@ import { SalesModule } from './modules/sales/sales.module';
     PayrollModule,
     AccountingModule,
     SalesModule,
+    UsersModule,
   ],
   controllers: [AppController],
   providers: [AppService, PrismaService],

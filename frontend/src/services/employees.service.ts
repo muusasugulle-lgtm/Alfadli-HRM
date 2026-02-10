@@ -6,15 +6,14 @@ export interface Employee {
   email?: string;
   phone?: string;
   position?: string;
-  department?: string;
-  salary?: number;
+  salary: number;
+  startDate: string;
+  status: 'active' | 'inactive';
   branchId: string;
   branch?: {
     id: string;
     name: string;
   };
-  hireDate?: string;
-  status: 'active' | 'inactive' | 'terminated';
   createdAt: string;
   updatedAt: string;
 }
@@ -24,11 +23,10 @@ export interface CreateEmployeeDto {
   email?: string;
   phone?: string;
   position?: string;
-  department?: string;
-  salary?: number;
+  salary: number;
+  startDate: string;
+  status?: 'active' | 'inactive';
   branchId: string;
-  hireDate?: string;
-  status?: 'active' | 'inactive' | 'terminated';
 }
 
 export interface UpdateEmployeeDto extends Partial<CreateEmployeeDto> {}
