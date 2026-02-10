@@ -15,8 +15,20 @@ export class EmployeesService {
       throw new ForbiddenException('You can only create employees in your branch');
     }
 
+    // Convert data types for Prisma
+    const data = {
+      name: createEmployeeDto.name,
+      email: createEmployeeDto.email || null,
+      phone: createEmployeeDto.phone || null,
+      position: createEmployeeDto.position || null,
+      salary: createEmployeeDto.salary,
+      startDate: new Date(createEmployeeDto.startDate),
+      status: createEmployeeDto.status || 'active',
+      branchId: createEmployeeDto.branchId,
+    };
+
     return this.prisma.employee.create({
-      data: createEmployeeDto,
+      data,
       include: { branch: true },
     });
   }
@@ -90,9 +102,15 @@ export class EmployeesService {
       throw new ForbiddenException('You can only update employees in your branch');
     }
 
+    // Convert data types for Prisma
+    const data: any = { ...updateEmployeeDto };
+    if (updateEmployeeDto.startDate) {
+      data.startDate = new Date(updateEmployeeDto.startDate);
+    }
+
     return this.prisma.employee.update({
       where: { id },
-      data: updateEmployeeDto,
+      data,
       include: { branch: true },
     });
   }
@@ -116,7 +134,6 @@ export class EmployeesService {
       if (employee.branchId !== userBranchId) {
         throw new ForbiddenException('You can only delete employees in your branch');
       }
-      // Add additional checks for limited delete if needed
     }
 
     return this.prisma.employee.delete({
@@ -124,6 +141,3 @@ export class EmployeesService {
     });
   }
 }
-
-
-
