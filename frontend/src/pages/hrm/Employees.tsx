@@ -4,15 +4,17 @@ import { branchesService, Branch } from '../../services/branches.service';
 import { useAuth } from '../../hooks/useAuth';
 
 export default function Employees() {
-  const { isAdmin, canWrite, user } = useAuth();
+  const { isAdmin, canWrite } = useAuth();
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [branches, setBranches] = useState<Branch[]>([]);
   const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
   const [selectedBranch, setSelectedBranch] = useState<string>('');
-  const [formData, setFormData] = useState<CreateEmployeeDto>({
+  
+  const getDefaultFormData = (branchId: string = ''): CreateEmployeeDto => ({
     name: '',
     email: '',
     phone: '',
@@ -20,8 +22,10 @@ export default function Employees() {
     salary: 0,
     startDate: new Date().toISOString().split('T')[0],
     status: 'active',
-    branchId: '',
+    branchId: branchId,
   });
+
+  const [formData, setFormData] = useState<CreateEmployeeDto>(getDefaultFormData());
 
   useEffect(() => {
     fetchData();
@@ -57,7 +61,7 @@ export default function Employees() {
       const data = await employeesService.getAll(branchId);
       setEmployees(data);
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to load employees');
+      console.error('Failed to load employees:', err);
     }
   };
 
@@ -65,16 +69,34 @@ export default function Employees() {
     e.preventDefault();
     setError(null);
     
+    // Manual validation
+    if (!formData.name.trim()) {
+      setError('Name is required');
+      return;
+    }
+    if (!formData.branchId) {
+      setError('Please select a branch');
+      return;
+    }
+    if (!formData.salary || formData.salary <= 0) {
+      setError('Please enter a valid salary');
+      return;
+    }
+    if (!formData.startDate) {
+      setError('Please select a start date');
+      return;
+    }
+    
     try {
-      // Prepare data with proper types
+      setSubmitting(true);
       const submitData: CreateEmployeeDto = {
-        name: formData.name,
-        email: formData.email || undefined,
-        phone: formData.phone || undefined,
-        position: formData.position || undefined,
+        name: formData.name.trim(),
+        email: formData.email?.trim() || undefined,
+        phone: formData.phone?.trim() || undefined,
+        position: formData.position?.trim() || undefined,
         salary: Number(formData.salary),
         startDate: formData.startDate,
-        status: formData.status,
+        status: formData.status || 'active',
         branchId: formData.branchId,
       };
 
@@ -85,24 +107,18 @@ export default function Employees() {
       }
       setShowModal(false);
       setEditingEmployee(null);
-      resetForm();
+      setFormData(getDefaultFormData(branches[0]?.id || ''));
       fetchEmployees(selectedBranch || undefined);
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to save employee');
+      const message = err.response?.data?.message;
+      if (Array.isArray(message)) {
+        setError(message.join(', '));
+      } else {
+        setError(message || 'Failed to save employee');
+      }
+    } finally {
+      setSubmitting(false);
     }
-  };
-
-  const resetForm = () => {
-    setFormData({
-      name: '',
-      email: '',
-      phone: '',
-      position: '',
-      salary: 0,
-      startDate: new Date().toISOString().split('T')[0],
-      status: 'active',
-      branchId: branches[0]?.id || '',
-    });
   };
 
   const handleEdit = (employee: Employee) => {
@@ -117,6 +133,7 @@ export default function Employees() {
       status: employee.status,
       branchId: employee.branchId,
     });
+    setError(null);
     setShowModal(true);
   };
 
@@ -132,10 +149,10 @@ export default function Employees() {
 
   const openAddModal = () => {
     setEditingEmployee(null);
-    resetForm();
-    if (branches.length > 0) {
-      setFormData(prev => ({ ...prev, branchId: branches[0].id }));
-    }
+    // Set branch to first available branch
+    const defaultBranchId = branches.length > 0 ? branches[0].id : '';
+    setFormData(getDefaultFormData(defaultBranchId));
+    setError(null);
     setShowModal(true);
   };
 
@@ -160,7 +177,7 @@ export default function Employees() {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
         <h1 className="text-3xl font-bold text-gray-900">Employees</h1>
         <div className="flex gap-3 w-full sm:w-auto">
-          {isAdmin && (
+          {isAdmin && branches.length > 0 && (
             <select
               value={selectedBranch}
               onChange={(e) => setSelectedBranch(e.target.value)}
@@ -172,7 +189,7 @@ export default function Employees() {
               ))}
             </select>
           )}
-          {canWrite && (
+          {canWrite && branches.length > 0 && (
             <button
               onClick={openAddModal}
               className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg flex items-center gap-2 transition-colors"
@@ -186,7 +203,7 @@ export default function Employees() {
         </div>
       </div>
 
-      {error && (
+      {error && !showModal && (
         <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
           {error}
           <button onClick={() => setError(null)} className="float-right font-bold">&times;</button>
@@ -244,9 +261,6 @@ export default function Employees() {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Salary
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Start Date
-                  </th>
                   {canWrite && (
                     <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Actions
@@ -283,9 +297,6 @@ export default function Employees() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                       ${Number(employee.salary).toLocaleString()}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {employee.startDate ? new Date(employee.startDate).toLocaleDateString() : '-'}
                     </td>
                     {canWrite && (
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
@@ -341,11 +352,10 @@ export default function Employees() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Full Name *
+                    Full Name <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="text"
-                    required
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -353,6 +363,48 @@ export default function Employees() {
                   />
                 </div>
                 
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Branch <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    value={formData.branchId}
+                    onChange={(e) => setFormData({ ...formData, branchId: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
+                    {branches.map((branch) => (
+                      <option key={branch.id} value={branch.id}>{branch.name}</option>
+                    ))}
+                  </select>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Salary <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={formData.salary}
+                    onChange={(e) => setFormData({ ...formData, salary: parseFloat(e.target.value) || 0 })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="Enter salary"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Start Date <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="date"
+                    value={formData.startDate}
+                    onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
+
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Email
@@ -381,23 +433,6 @@ export default function Employees() {
                 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Branch *
-                  </label>
-                  <select
-                    required
-                    value={formData.branchId}
-                    onChange={(e) => setFormData({ ...formData, branchId: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  >
-                    <option value="">Select Branch</option>
-                    {branches.map((branch) => (
-                      <option key={branch.id} value={branch.id}>{branch.name}</option>
-                    ))}
-                  </select>
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
                     Position
                   </label>
                   <input
@@ -406,35 +441,6 @@ export default function Employees() {
                     onChange={(e) => setFormData({ ...formData, position: e.target.value })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     placeholder="e.g. Software Engineer"
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Salary *
-                  </label>
-                  <input
-                    type="number"
-                    required
-                    min="0"
-                    step="0.01"
-                    value={formData.salary}
-                    onChange={(e) => setFormData({ ...formData, salary: parseFloat(e.target.value) || 0 })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="Enter salary"
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Start Date *
-                  </label>
-                  <input
-                    type="date"
-                    required
-                    value={formData.startDate}
-                    onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
                 </div>
                 
@@ -458,14 +464,16 @@ export default function Employees() {
                   type="button"
                   onClick={() => setShowModal(false)}
                   className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                  disabled={submitting}
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                  disabled={submitting}
+                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {editingEmployee ? 'Update' : 'Create'}
+                  {submitting ? 'Saving...' : (editingEmployee ? 'Update' : 'Create')}
                 </button>
               </div>
             </form>
