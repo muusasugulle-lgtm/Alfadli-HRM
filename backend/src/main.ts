@@ -1,6 +1,38 @@
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { AppModule } from './app.module';
+import { PrismaClient } from '@prisma/client';
+import * as bcrypt from 'bcryptjs';
+
+async function seedDatabase() {
+  const prisma = new PrismaClient();
+  try {
+    // Check if admin user exists
+    const existingAdmin = await prisma.user.findUnique({
+      where: { email: 'admin@alfadli.com' },
+    });
+
+    if (!existingAdmin) {
+      // Create default admin user
+      const hashedPassword = await bcrypt.hash('admin123', 10);
+      await prisma.user.create({
+        data: {
+          email: 'admin@alfadli.com',
+          password: hashedPassword,
+          name: 'Admin User',
+          role: 'ADMIN',
+        },
+      });
+      console.log('✅ Created admin user: admin@alfadli.com');
+    } else {
+      console.log('✅ Admin user already exists');
+    }
+  } catch (error) {
+    console.error('Seeding error:', error);
+  } finally {
+    await prisma.$disconnect();
+  }
+}
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -23,6 +55,9 @@ async function bootstrap() {
     forbidNonWhitelisted: true,
     transform: true,
   }));
+
+  // Seed database with admin user
+  await seedDatabase();
   
   const port = process.env.PORT ?? 3000;
   await app.listen(port, '0.0.0.0');
