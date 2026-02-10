@@ -1,4 +1,4 @@
-import { IsString, IsEmail, IsOptional, IsNumber, IsDateString, IsEnum } from 'class-validator';
+import { IsString, IsEmail, IsOptional, IsNumber, IsDateString, IsIn } from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class CreateEmployeeDto {
@@ -25,12 +25,9 @@ export class CreateEmployeeDto {
   startDate: string;
 
   @IsOptional()
-  @IsEnum(['active', 'inactive'])
+  @IsIn(['active', 'inactive'])
   status?: string;
 
   @IsString()
   branchId: string;
 }
-
-
-

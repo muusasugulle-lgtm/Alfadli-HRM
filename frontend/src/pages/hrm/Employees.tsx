@@ -39,8 +39,8 @@ export default function Employees() {
     try {
       setLoading(true);
       const [employeesData, branchesData] = await Promise.all([
-        employeesService.getAll(),
-        branchesService.getAll(),
+        employeesService.getAll().catch(() => []),
+        branchesService.getAll().catch(() => []),
       ]);
       setEmployees(employeesData);
       setBranches(branchesData);

@@ -46,11 +46,12 @@ export default function Payroll() {
     try {
       setLoading(true);
       const [branchesData, employeesData] = await Promise.all([
-        branchesService.getAll(),
-        employeesService.getAll(),
+        branchesService.getAll().catch(() => []),
+        employeesService.getAll().catch(() => []),
       ]);
       setBranches(branchesData);
       setEmployees(employeesData);
+      setError(null);
     } catch (err: any) {
       setError(err.response?.data?.message || 'Failed to load data');
     } finally {

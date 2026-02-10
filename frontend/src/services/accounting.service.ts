@@ -58,6 +58,7 @@ export interface ProfitLoss {
   totalIncome: number;
   totalExpense: number;
   netProfit: number;
+  profit?: number;
 }
 
 export const accountingService = {
@@ -129,7 +130,12 @@ export const accountingService = {
     if (startDate) params.append('startDate', startDate);
     if (endDate) params.append('endDate', endDate);
     const query = params.toString() ? `?${params.toString()}` : '';
-    const response = await api.get<ProfitLoss>(`/accounting/profit-loss${query}`);
-    return response.data;
+    const response = await api.get<any>(`/accounting/profit-loss${query}`);
+    // Map backend 'profit' to frontend 'netProfit'
+    return {
+      totalIncome: response.data.totalIncome || 0,
+      totalExpense: response.data.totalExpense || 0,
+      netProfit: response.data.profit || response.data.netProfit || 0,
+    };
   },
 };

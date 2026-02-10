@@ -36,8 +36,9 @@ export default function Sales() {
   const fetchInitialData = async () => {
     try {
       setLoading(true);
-      const branchesData = await branchesService.getAll();
+      const branchesData = await branchesService.getAll().catch(() => []);
       setBranches(branchesData);
+      setError(null);
     } catch (err: any) {
       setError(err.response?.data?.message || 'Failed to load data');
     } finally {

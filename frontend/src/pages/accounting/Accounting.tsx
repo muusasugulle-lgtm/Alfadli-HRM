@@ -55,11 +55,12 @@ export default function Accounting() {
     try {
       setLoading(true);
       const [branchesData, categoriesData] = await Promise.all([
-        branchesService.getAll(),
-        accountingService.getCategories(),
+        branchesService.getAll().catch(() => []),
+        accountingService.getCategories().catch(() => []),
       ]);
       setBranches(branchesData);
       setCategories(categoriesData);
+      setError(null);
     } catch (err: any) {
       setError(err.response?.data?.message || 'Failed to load data');
     } finally {
@@ -70,9 +71,9 @@ export default function Accounting() {
   const fetchData = async () => {
     try {
       const [incomesData, expensesData, profitLossData] = await Promise.all([
-        accountingService.getAllIncomes(filterBranch || undefined, filterStartDate || undefined, filterEndDate || undefined),
-        accountingService.getAllExpenses(filterBranch || undefined, filterStartDate || undefined, filterEndDate || undefined),
-        accountingService.getProfitLoss(filterBranch || undefined, filterStartDate || undefined, filterEndDate || undefined),
+        accountingService.getAllIncomes(filterBranch || undefined, filterStartDate || undefined, filterEndDate || undefined).catch(() => []),
+        accountingService.getAllExpenses(filterBranch || undefined, filterStartDate || undefined, filterEndDate || undefined).catch(() => []),
+        accountingService.getProfitLoss(filterBranch || undefined, filterStartDate || undefined, filterEndDate || undefined).catch(() => ({ totalIncome: 0, totalExpense: 0, netProfit: 0 })),
       ]);
       setIncomes(incomesData);
       setExpenses(expensesData);
