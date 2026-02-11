@@ -10,28 +10,26 @@ const api = axios.create({
   },
 });
 
-// Add token to requests
+// Add token to requests - using sessionStorage for tab-independent sessions
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('token');
+  const token = sessionStorage.getItem('token');
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
   return config;
 });
 
-// Handle errors - DON'T auto-logout, let the component handle it
+// Handle errors
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    // Don't auto-logout on 401 - let the useAuth hook handle it
-    // Only redirect if we're NOT already on the login page
+    // Only redirect on 401 if not already on login page and not a login request
     if (error.response?.status === 401 && !window.location.pathname.includes('/login')) {
-      // Check if the error is from a protected route, not login itself
       const isLoginRequest = error.config?.url?.includes('/auth/login');
       if (!isLoginRequest) {
         console.log('Session expired, redirecting to login');
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
+        sessionStorage.removeItem('token');
+        sessionStorage.removeItem('user');
         window.location.href = '/login';
       }
     }

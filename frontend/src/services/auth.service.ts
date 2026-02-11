@@ -30,37 +30,43 @@ export interface AuthResponse {
   access_token: string;
 }
 
+// Use sessionStorage for tab-independent sessions
+// Each browser tab will have its own independent login session
+const storage = sessionStorage;
+
 export const authService = {
   async login(credentials: LoginDto): Promise<AuthResponse> {
     const response = await api.post<AuthResponse>('/auth/login', credentials);
-    localStorage.setItem('token', response.data.access_token);
-    localStorage.setItem('user', JSON.stringify(response.data.user));
+    storage.setItem('token', response.data.access_token);
+    storage.setItem('user', JSON.stringify(response.data.user));
     return response.data;
   },
 
   async register(data: RegisterDto): Promise<AuthResponse> {
     const response = await api.post<AuthResponse>('/auth/register', data);
-    localStorage.setItem('token', response.data.access_token);
-    localStorage.setItem('user', JSON.stringify(response.data.user));
+    storage.setItem('token', response.data.access_token);
+    storage.setItem('user', JSON.stringify(response.data.user));
     return response.data;
   },
 
   async getProfile(): Promise<User> {
     const response = await api.get<User>('/auth/profile');
+    // Update stored user with fresh data
+    storage.setItem('user', JSON.stringify(response.data));
     return response.data;
   },
 
   logout(): void {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
+    storage.removeItem('token');
+    storage.removeItem('user');
   },
 
   getToken(): string | null {
-    return localStorage.getItem('token');
+    return storage.getItem('token');
   },
 
   getUser(): User | null {
-    const userStr = localStorage.getItem('user');
+    const userStr = storage.getItem('user');
     return userStr ? JSON.parse(userStr) : null;
   },
 
@@ -68,6 +74,3 @@ export const authService = {
     return !!this.getToken();
   },
 };
-
-
-

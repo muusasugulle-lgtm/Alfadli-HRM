@@ -3,7 +3,7 @@ import { authService, User } from '../services/auth.service';
 
 export const useAuth = () => {
   const [user, setUser] = useState<User | null>(() => {
-    // Initialize from localStorage immediately
+    // Initialize from sessionStorage immediately
     return authService.getUser();
   });
   const [loading, setLoading] = useState(true);
@@ -12,8 +12,6 @@ export const useAuth = () => {
     try {
       if (authService.isAuthenticated()) {
         const profile = await authService.getProfile();
-        // Update localStorage with fresh data
-        localStorage.setItem('user', JSON.stringify(profile));
         setUser(profile);
       }
     } catch (err: any) {
