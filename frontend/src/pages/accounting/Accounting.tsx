@@ -14,6 +14,7 @@ export default function Accounting() {
   const [profitLoss, setProfitLoss] = useState<ProfitLoss>({ totalIncome: 0, totalExpense: 0, netProfit: 0 });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
   
   const [filterBranch, setFilterBranch] = useState<string>('');
   const [filterStartDate, setFilterStartDate] = useState<string>('');
@@ -42,45 +43,6 @@ export default function Accounting() {
     attachmentName: '',
   });
 
-  const [incomeFilePreview, setIncomeFilePreview] = useState<string>('');
-  const [expenseFilePreview, setExpenseFilePreview] = useState<string>('');
-
-  // Handle file upload for income
-  const handleIncomeFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      if (file.size > 5 * 1024 * 1024) {
-        setError('File size must be less than 5MB');
-        return;
-      }
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const base64 = reader.result as string;
-        setIncomeForm({ ...incomeForm, attachmentUrl: base64, attachmentName: file.name });
-        setIncomeFilePreview(file.name);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  // Handle file upload for expense
-  const handleExpenseFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      if (file.size > 5 * 1024 * 1024) {
-        setError('File size must be less than 5MB');
-        return;
-      }
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const base64 = reader.result as string;
-        setExpenseForm({ ...expenseForm, attachmentUrl: base64, attachmentName: file.name });
-        setExpenseFilePreview(file.name);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
   useEffect(() => {
     fetchInitialData();
   }, []);
@@ -104,7 +66,6 @@ export default function Accounting() {
 
   const fetchData = async () => {
     try {
-      // Staff can only see their branch
       const branchFilter = isStaff ? user?.branchId : (filterBranch || undefined);
       
       const [incomesData, expensesData, profitLossData] = await Promise.all([
@@ -124,7 +85,6 @@ export default function Accounting() {
     e.preventDefault();
     setError(null);
     
-    // Validation
     if (!incomeForm.branchId) {
       setError('Please select a branch');
       return;
@@ -138,21 +98,33 @@ export default function Accounting() {
       return;
     }
     
+    setSubmitting(true);
     try {
+      // Don't send empty attachment fields
+      const dataToSend = {
+        branchId: incomeForm.branchId,
+        amount: incomeForm.amount,
+        date: incomeForm.date,
+        description: incomeForm.description || undefined,
+        attachmentUrl: incomeForm.attachmentUrl || undefined,
+        attachmentName: incomeForm.attachmentName || undefined,
+      };
+      
       if (editingIncome) {
-        await accountingService.updateIncome(editingIncome.id, incomeForm);
+        await accountingService.updateIncome(editingIncome.id, dataToSend);
       } else {
-        await accountingService.createIncome(incomeForm);
+        await accountingService.createIncome(dataToSend);
       }
       setShowIncomeModal(false);
       setEditingIncome(null);
-      setIncomeForm({ branchId: branches[0]?.id || '', amount: 0, date: new Date().toISOString().split('T')[0], description: '', attachmentUrl: '', attachmentName: '' });
-      setIncomeFilePreview('');
+      resetIncomeForm();
       fetchData();
     } catch (err: any) {
       console.error('Income save error:', err);
       const message = err.response?.data?.message || err.message || 'Failed to save income. Please try again.';
       setError(message);
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -160,7 +132,6 @@ export default function Accounting() {
     e.preventDefault();
     setError(null);
     
-    // Validation
     if (!expenseForm.branchId) {
       setError('Please select a branch');
       return;
@@ -174,22 +145,56 @@ export default function Accounting() {
       return;
     }
     
+    setSubmitting(true);
     try {
+      // Don't send empty attachment fields
+      const dataToSend = {
+        branchId: expenseForm.branchId,
+        amount: expenseForm.amount,
+        date: expenseForm.date,
+        description: expenseForm.description || undefined,
+        attachmentUrl: expenseForm.attachmentUrl || undefined,
+        attachmentName: expenseForm.attachmentName || undefined,
+      };
+      
       if (editingExpense) {
-        await accountingService.updateExpense(editingExpense.id, expenseForm);
+        await accountingService.updateExpense(editingExpense.id, dataToSend);
       } else {
-        await accountingService.createExpense(expenseForm);
+        await accountingService.createExpense(dataToSend);
       }
       setShowExpenseModal(false);
       setEditingExpense(null);
-      setExpenseForm({ branchId: branches[0]?.id || '', amount: 0, date: new Date().toISOString().split('T')[0], description: '', attachmentUrl: '', attachmentName: '' });
-      setExpenseFilePreview('');
+      resetExpenseForm();
       fetchData();
     } catch (err: any) {
       console.error('Expense save error:', err);
       const message = err.response?.data?.message || err.message || 'Failed to save expense. Please try again.';
       setError(message);
+    } finally {
+      setSubmitting(false);
     }
+  };
+
+  const resetIncomeForm = () => {
+    setIncomeForm({
+      branchId: branches[0]?.id || '',
+      amount: 0,
+      date: new Date().toISOString().split('T')[0],
+      description: '',
+      attachmentUrl: '',
+      attachmentName: '',
+    });
+  };
+
+  const resetExpenseForm = () => {
+    setExpenseForm({
+      branchId: branches[0]?.id || '',
+      amount: 0,
+      date: new Date().toISOString().split('T')[0],
+      description: '',
+      attachmentUrl: '',
+      attachmentName: '',
+    });
   };
 
   const handleDeleteIncome = async (id: string) => {
@@ -212,7 +217,6 @@ export default function Accounting() {
     }
   };
 
-  // Manager can only view, not edit
   const canEdit = isAdmin || (isStaff && canWrite);
 
   const tabs = [
@@ -243,13 +247,13 @@ export default function Accounting() {
         </div>
         <div className="flex gap-2">
           {canEdit && activeTab === 'income' && (
-            <button onClick={() => { setEditingIncome(null); setIncomeForm({ branchId: branches[0]?.id || '', amount: 0, date: new Date().toISOString().split('T')[0], description: '', attachmentUrl: '', attachmentName: '' }); setIncomeFilePreview(''); setShowIncomeModal(true); }}
+            <button onClick={() => { setEditingIncome(null); resetIncomeForm(); setShowIncomeModal(true); setError(null); }}
               className="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-lg flex items-center gap-2">
               + Add Income
             </button>
           )}
           {canEdit && activeTab === 'expenses' && (
-            <button onClick={() => { setEditingExpense(null); setExpenseForm({ branchId: branches[0]?.id || '', amount: 0, date: new Date().toISOString().split('T')[0], description: '', attachmentUrl: '', attachmentName: '' }); setExpenseFilePreview(''); setShowExpenseModal(true); }}
+            <button onClick={() => { setEditingExpense(null); resetExpenseForm(); setShowExpenseModal(true); setError(null); }}
               className="bg-red-600 hover:bg-red-700 text-white font-semibold py-2 px-4 rounded-lg flex items-center gap-2">
               + Add Expense
             </button>
@@ -283,7 +287,7 @@ export default function Accounting() {
         </nav>
       </div>
 
-      {/* Filters - Admin and Manager can filter by branch */}
+      {/* Filters */}
       {(activeTab === 'overview' || activeTab === 'income' || activeTab === 'expenses') && (
         <div className="bg-white rounded-lg shadow-sm p-4 mb-6">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -340,7 +344,8 @@ export default function Accounting() {
             <div className="p-12 text-center">
               <p className="text-gray-500 mb-4">No income records found</p>
               {canEdit && (
-                <button onClick={() => setShowIncomeModal(true)} className="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-6 rounded-lg">
+                <button onClick={() => { setEditingIncome(null); resetIncomeForm(); setShowIncomeModal(true); setError(null); }} 
+                  className="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-6 rounded-lg">
                   Add First Income
                 </button>
               )}
@@ -368,10 +373,7 @@ export default function Accounting() {
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-center">
                       {income.attachmentUrl ? (
                         <a href={income.attachmentUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800">
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
-                          </svg>
-                          View
+                          📎 View
                         </a>
                       ) : (
                         <span className="text-gray-400">-</span>
@@ -382,8 +384,19 @@ export default function Accounting() {
                     </td>
                     {canEdit && (
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm">
-                        <button onClick={() => { setEditingIncome(income); setIncomeForm({ branchId: income.branchId, amount: Number(income.amount), date: income.date.split('T')[0], description: income.description || '', attachmentUrl: income.attachmentUrl || '', attachmentName: income.attachmentName || '' }); setIncomeFilePreview(''); setShowIncomeModal(true); }}
-                          className="text-blue-600 hover:text-blue-900 mr-3">Edit</button>
+                        <button onClick={() => { 
+                          setEditingIncome(income); 
+                          setIncomeForm({ 
+                            branchId: income.branchId, 
+                            amount: Number(income.amount), 
+                            date: income.date.split('T')[0], 
+                            description: income.description || '', 
+                            attachmentUrl: income.attachmentUrl || '', 
+                            attachmentName: income.attachmentName || '' 
+                          }); 
+                          setShowIncomeModal(true); 
+                          setError(null);
+                        }} className="text-blue-600 hover:text-blue-900 mr-3">Edit</button>
                         <button onClick={() => handleDeleteIncome(income.id)} className="text-red-600 hover:text-red-900">Delete</button>
                       </td>
                     )}
@@ -402,7 +415,8 @@ export default function Accounting() {
             <div className="p-12 text-center">
               <p className="text-gray-500 mb-4">No expense records found</p>
               {canEdit && (
-                <button onClick={() => setShowExpenseModal(true)} className="bg-red-600 hover:bg-red-700 text-white font-semibold py-2 px-6 rounded-lg">
+                <button onClick={() => { setEditingExpense(null); resetExpenseForm(); setShowExpenseModal(true); setError(null); }} 
+                  className="bg-red-600 hover:bg-red-700 text-white font-semibold py-2 px-6 rounded-lg">
                   Add First Expense
                 </button>
               )}
@@ -430,10 +444,7 @@ export default function Accounting() {
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-center">
                       {expense.attachmentUrl ? (
                         <a href={expense.attachmentUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800">
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
-                          </svg>
-                          View
+                          📎 View
                         </a>
                       ) : (
                         <span className="text-gray-400">-</span>
@@ -444,8 +455,19 @@ export default function Accounting() {
                     </td>
                     {canEdit && (
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm">
-                        <button onClick={() => { setEditingExpense(expense); setExpenseForm({ branchId: expense.branchId, amount: Number(expense.amount), date: expense.date.split('T')[0], description: expense.description || '', attachmentUrl: expense.attachmentUrl || '', attachmentName: expense.attachmentName || '' }); setExpenseFilePreview(''); setShowExpenseModal(true); }}
-                          className="text-blue-600 hover:text-blue-900 mr-3">Edit</button>
+                        <button onClick={() => { 
+                          setEditingExpense(expense); 
+                          setExpenseForm({ 
+                            branchId: expense.branchId, 
+                            amount: Number(expense.amount), 
+                            date: expense.date.split('T')[0], 
+                            description: expense.description || '', 
+                            attachmentUrl: expense.attachmentUrl || '', 
+                            attachmentName: expense.attachmentName || '' 
+                          }); 
+                          setShowExpenseModal(true); 
+                          setError(null);
+                        }} className="text-blue-600 hover:text-blue-900 mr-3">Edit</button>
                         <button onClick={() => handleDeleteExpense(expense.id)} className="text-red-600 hover:text-red-900">Delete</button>
                       </td>
                     )}
@@ -466,9 +488,14 @@ export default function Accounting() {
               <button onClick={() => setShowIncomeModal(false)} className="text-gray-400 hover:text-gray-600 text-2xl">×</button>
             </div>
             <form onSubmit={handleIncomeSubmit} className="p-6 space-y-4">
+              {error && (
+                <div className="bg-red-100 border border-red-400 text-red-700 px-3 py-2 rounded text-sm">
+                  {error}
+                </div>
+              )}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Branch *</label>
-                <select required value={incomeForm.branchId} onChange={(e) => setIncomeForm({ ...incomeForm, branchId: e.target.value })}
+                <select value={incomeForm.branchId} onChange={(e) => setIncomeForm({ ...incomeForm, branchId: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
                   <option value="">Select Branch</option>
                   {branches.map((branch) => (<option key={branch.id} value={branch.id}>{branch.name}</option>))}
@@ -476,13 +503,13 @@ export default function Accounting() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Amount *</label>
-                <input type="number" required min="0" step="0.01" value={incomeForm.amount}
+                <input type="number" min="0" step="0.01" value={incomeForm.amount}
                   onChange={(e) => setIncomeForm({ ...incomeForm, amount: parseFloat(e.target.value) || 0 })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Date *</label>
-                <input type="date" required value={incomeForm.date}
+                <input type="date" value={incomeForm.date}
                   onChange={(e) => setIncomeForm({ ...incomeForm, date: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" />
               </div>
@@ -494,19 +521,22 @@ export default function Accounting() {
                   placeholder="e.g., Daily sales, Service fee, etc." />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Attachment (Receipt/Invoice)</label>
-                <input type="file" accept="image/*,.pdf" onChange={handleIncomeFileChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
-                {incomeFilePreview && (
-                  <div className="mt-2 flex items-center gap-2 text-sm text-green-600">
-                    <span>✓ {incomeFilePreview}</span>
-                    <button type="button" onClick={() => { setIncomeFilePreview(''); setIncomeForm({ ...incomeForm, attachmentUrl: '', attachmentName: '' }); }} className="text-red-500">×</button>
-                  </div>
-                )}
+                <label className="block text-sm font-medium text-gray-700 mb-1">Attachment URL (Optional)</label>
+                <input type="url" value={incomeForm.attachmentUrl}
+                  onChange={(e) => setIncomeForm({ ...incomeForm, attachmentUrl: e.target.value, attachmentName: e.target.value ? 'Link' : '' })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  placeholder="Paste Google Drive, Dropbox link, etc." />
+                <p className="text-xs text-gray-500 mt-1">Upload your file to Google Drive or Dropbox and paste the share link here</p>
               </div>
               <div className="flex gap-3 pt-4">
-                <button type="button" onClick={() => setShowIncomeModal(false)} className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50">Cancel</button>
-                <button type="submit" className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700">{editingIncome ? 'Update' : 'Add'}</button>
+                <button type="button" onClick={() => setShowIncomeModal(false)} 
+                  className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50">
+                  Cancel
+                </button>
+                <button type="submit" disabled={submitting}
+                  className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50">
+                  {submitting ? 'Saving...' : (editingIncome ? 'Update' : 'Add')}
+                </button>
               </div>
             </form>
           </div>
@@ -522,9 +552,14 @@ export default function Accounting() {
               <button onClick={() => setShowExpenseModal(false)} className="text-gray-400 hover:text-gray-600 text-2xl">×</button>
             </div>
             <form onSubmit={handleExpenseSubmit} className="p-6 space-y-4">
+              {error && (
+                <div className="bg-red-100 border border-red-400 text-red-700 px-3 py-2 rounded text-sm">
+                  {error}
+                </div>
+              )}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Branch *</label>
-                <select required value={expenseForm.branchId} onChange={(e) => setExpenseForm({ ...expenseForm, branchId: e.target.value })}
+                <select value={expenseForm.branchId} onChange={(e) => setExpenseForm({ ...expenseForm, branchId: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
                   <option value="">Select Branch</option>
                   {branches.map((branch) => (<option key={branch.id} value={branch.id}>{branch.name}</option>))}
@@ -532,13 +567,13 @@ export default function Accounting() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Amount *</label>
-                <input type="number" required min="0" step="0.01" value={expenseForm.amount}
+                <input type="number" min="0" step="0.01" value={expenseForm.amount}
                   onChange={(e) => setExpenseForm({ ...expenseForm, amount: parseFloat(e.target.value) || 0 })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Date *</label>
-                <input type="date" required value={expenseForm.date}
+                <input type="date" value={expenseForm.date}
                   onChange={(e) => setExpenseForm({ ...expenseForm, date: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" />
               </div>
@@ -550,19 +585,22 @@ export default function Accounting() {
                   placeholder="e.g., Rent, Utilities, Supplies, etc." />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Attachment (Receipt/Invoice)</label>
-                <input type="file" accept="image/*,.pdf" onChange={handleExpenseFileChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
-                {expenseFilePreview && (
-                  <div className="mt-2 flex items-center gap-2 text-sm text-green-600">
-                    <span>✓ {expenseFilePreview}</span>
-                    <button type="button" onClick={() => { setExpenseFilePreview(''); setExpenseForm({ ...expenseForm, attachmentUrl: '', attachmentName: '' }); }} className="text-red-500">×</button>
-                  </div>
-                )}
+                <label className="block text-sm font-medium text-gray-700 mb-1">Attachment URL (Optional)</label>
+                <input type="url" value={expenseForm.attachmentUrl}
+                  onChange={(e) => setExpenseForm({ ...expenseForm, attachmentUrl: e.target.value, attachmentName: e.target.value ? 'Link' : '' })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  placeholder="Paste Google Drive, Dropbox link, etc." />
+                <p className="text-xs text-gray-500 mt-1">Upload your file to Google Drive or Dropbox and paste the share link here</p>
               </div>
               <div className="flex gap-3 pt-4">
-                <button type="button" onClick={() => setShowExpenseModal(false)} className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50">Cancel</button>
-                <button type="submit" className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700">{editingExpense ? 'Update' : 'Add'}</button>
+                <button type="button" onClick={() => setShowExpenseModal(false)} 
+                  className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50">
+                  Cancel
+                </button>
+                <button type="submit" disabled={submitting}
+                  className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50">
+                  {submitting ? 'Saving...' : (editingExpense ? 'Update' : 'Add')}
+                </button>
               </div>
             </form>
           </div>
