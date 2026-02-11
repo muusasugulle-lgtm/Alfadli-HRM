@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { accountingService, Income, Expense, CreateIncomeDto, CreateExpenseDto, ProfitLoss } from '../../services/accounting.service';
 import { branchesService, Branch } from '../../services/branches.service';
 import { useAuth } from '../../hooks/useAuth';
@@ -25,6 +25,10 @@ export default function Accounting() {
   const [editingIncome, setEditingIncome] = useState<Income | null>(null);
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
 
+  // File input refs
+  const incomeFileRef = useRef<HTMLInputElement>(null);
+  const expenseFileRef = useRef<HTMLInputElement>(null);
+
   const [incomeForm, setIncomeForm] = useState<CreateIncomeDto>({
     branchId: '',
     amount: 0,
@@ -42,6 +46,10 @@ export default function Accounting() {
     attachmentUrl: '',
     attachmentName: '',
   });
+
+  // File name display
+  const [incomeFileName, setIncomeFileName] = useState<string>('');
+  const [expenseFileName, setExpenseFileName] = useState<string>('');
 
   useEffect(() => {
     fetchInitialData();
@@ -81,6 +89,44 @@ export default function Accounting() {
     }
   };
 
+  // Handle file selection for income
+  const handleIncomeFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        setError('File size must be less than 5MB');
+        return;
+      }
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const base64 = reader.result as string;
+        setIncomeForm({ ...incomeForm, attachmentUrl: base64, attachmentName: file.name });
+        setIncomeFileName(file.name);
+        setError(null);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  // Handle file selection for expense
+  const handleExpenseFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        setError('File size must be less than 5MB');
+        return;
+      }
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const base64 = reader.result as string;
+        setExpenseForm({ ...expenseForm, attachmentUrl: base64, attachmentName: file.name });
+        setExpenseFileName(file.name);
+        setError(null);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   const handleIncomeSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -101,14 +147,18 @@ export default function Accounting() {
     setSubmitting(true);
     try {
       // Don't send empty attachment fields
-      const dataToSend = {
+      const dataToSend: any = {
         branchId: incomeForm.branchId,
         amount: incomeForm.amount,
         date: incomeForm.date,
         description: incomeForm.description || undefined,
-        attachmentUrl: incomeForm.attachmentUrl || undefined,
-        attachmentName: incomeForm.attachmentName || undefined,
       };
+      
+      // Only include attachment if present
+      if (incomeForm.attachmentUrl) {
+        dataToSend.attachmentUrl = incomeForm.attachmentUrl;
+        dataToSend.attachmentName = incomeForm.attachmentName;
+      }
       
       if (editingIncome) {
         await accountingService.updateIncome(editingIncome.id, dataToSend);
@@ -148,14 +198,18 @@ export default function Accounting() {
     setSubmitting(true);
     try {
       // Don't send empty attachment fields
-      const dataToSend = {
+      const dataToSend: any = {
         branchId: expenseForm.branchId,
         amount: expenseForm.amount,
         date: expenseForm.date,
         description: expenseForm.description || undefined,
-        attachmentUrl: expenseForm.attachmentUrl || undefined,
-        attachmentName: expenseForm.attachmentName || undefined,
       };
+      
+      // Only include attachment if present
+      if (expenseForm.attachmentUrl) {
+        dataToSend.attachmentUrl = expenseForm.attachmentUrl;
+        dataToSend.attachmentName = expenseForm.attachmentName;
+      }
       
       if (editingExpense) {
         await accountingService.updateExpense(editingExpense.id, dataToSend);
@@ -184,6 +238,8 @@ export default function Accounting() {
       attachmentUrl: '',
       attachmentName: '',
     });
+    setIncomeFileName('');
+    if (incomeFileRef.current) incomeFileRef.current.value = '';
   };
 
   const resetExpenseForm = () => {
@@ -195,6 +251,8 @@ export default function Accounting() {
       attachmentUrl: '',
       attachmentName: '',
     });
+    setExpenseFileName('');
+    if (expenseFileRef.current) expenseFileRef.current.value = '';
   };
 
   const handleDeleteIncome = async (id: string) => {
@@ -372,8 +430,10 @@ export default function Accounting() {
                     <td className="px-6 py-4 text-sm text-gray-500">{income.description || '-'}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-center">
                       {income.attachmentUrl ? (
-                        <a href={income.attachmentUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800">
-                          📎 View
+                        <a href={income.attachmentUrl} target="_blank" rel="noopener noreferrer" 
+                           download={income.attachmentName || 'attachment'}
+                           className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800 bg-blue-50 px-2 py-1 rounded">
+                          📎 {income.attachmentName || 'View File'}
                         </a>
                       ) : (
                         <span className="text-gray-400">-</span>
@@ -394,6 +454,7 @@ export default function Accounting() {
                             attachmentUrl: income.attachmentUrl || '', 
                             attachmentName: income.attachmentName || '' 
                           }); 
+                          setIncomeFileName(income.attachmentName || '');
                           setShowIncomeModal(true); 
                           setError(null);
                         }} className="text-blue-600 hover:text-blue-900 mr-3">Edit</button>
@@ -443,8 +504,10 @@ export default function Accounting() {
                     <td className="px-6 py-4 text-sm text-gray-500">{expense.description || '-'}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-center">
                       {expense.attachmentUrl ? (
-                        <a href={expense.attachmentUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800">
-                          📎 View
+                        <a href={expense.attachmentUrl} target="_blank" rel="noopener noreferrer"
+                           download={expense.attachmentName || 'attachment'}
+                           className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800 bg-blue-50 px-2 py-1 rounded">
+                          📎 {expense.attachmentName || 'View File'}
                         </a>
                       ) : (
                         <span className="text-gray-400">-</span>
@@ -465,6 +528,7 @@ export default function Accounting() {
                             attachmentUrl: expense.attachmentUrl || '', 
                             attachmentName: expense.attachmentName || '' 
                           }); 
+                          setExpenseFileName(expense.attachmentName || '');
                           setShowExpenseModal(true); 
                           setError(null);
                         }} className="text-blue-600 hover:text-blue-900 mr-3">Edit</button>
@@ -521,12 +585,27 @@ export default function Accounting() {
                   placeholder="e.g., Daily sales, Service fee, etc." />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Attachment URL (Optional)</label>
-                <input type="url" value={incomeForm.attachmentUrl}
-                  onChange={(e) => setIncomeForm({ ...incomeForm, attachmentUrl: e.target.value, attachmentName: e.target.value ? 'Link' : '' })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                  placeholder="Paste Google Drive, Dropbox link, etc." />
-                <p className="text-xs text-gray-500 mt-1">Upload your file to Google Drive or Dropbox and paste the share link here</p>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Attachment (Optional)</label>
+                <input type="file" ref={incomeFileRef} onChange={handleIncomeFileSelect} 
+                  accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx"
+                  className="hidden" />
+                <div className="flex items-center gap-2">
+                  <button type="button" onClick={() => incomeFileRef.current?.click()}
+                    className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg border border-gray-300 flex items-center gap-2">
+                    📁 Choose File
+                  </button>
+                  {incomeFileName && (
+                    <span className="text-sm text-green-600 flex items-center gap-1">
+                      ✓ {incomeFileName}
+                      <button type="button" onClick={() => { 
+                        setIncomeForm({ ...incomeForm, attachmentUrl: '', attachmentName: '' }); 
+                        setIncomeFileName('');
+                        if (incomeFileRef.current) incomeFileRef.current.value = '';
+                      }} className="text-red-500 hover:text-red-700 ml-1">×</button>
+                    </span>
+                  )}
+                </div>
+                <p className="text-xs text-gray-500 mt-1">Max 5MB: PDF, Images, Word, Excel</p>
               </div>
               <div className="flex gap-3 pt-4">
                 <button type="button" onClick={() => setShowIncomeModal(false)} 
@@ -585,12 +664,27 @@ export default function Accounting() {
                   placeholder="e.g., Rent, Utilities, Supplies, etc." />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Attachment URL (Optional)</label>
-                <input type="url" value={expenseForm.attachmentUrl}
-                  onChange={(e) => setExpenseForm({ ...expenseForm, attachmentUrl: e.target.value, attachmentName: e.target.value ? 'Link' : '' })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                  placeholder="Paste Google Drive, Dropbox link, etc." />
-                <p className="text-xs text-gray-500 mt-1">Upload your file to Google Drive or Dropbox and paste the share link here</p>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Attachment (Optional)</label>
+                <input type="file" ref={expenseFileRef} onChange={handleExpenseFileSelect} 
+                  accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx"
+                  className="hidden" />
+                <div className="flex items-center gap-2">
+                  <button type="button" onClick={() => expenseFileRef.current?.click()}
+                    className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg border border-gray-300 flex items-center gap-2">
+                    📁 Choose File
+                  </button>
+                  {expenseFileName && (
+                    <span className="text-sm text-green-600 flex items-center gap-1">
+                      ✓ {expenseFileName}
+                      <button type="button" onClick={() => { 
+                        setExpenseForm({ ...expenseForm, attachmentUrl: '', attachmentName: '' }); 
+                        setExpenseFileName('');
+                        if (expenseFileRef.current) expenseFileRef.current.value = '';
+                      }} className="text-red-500 hover:text-red-700 ml-1">×</button>
+                    </span>
+                  )}
+                </div>
+                <p className="text-xs text-gray-500 mt-1">Max 5MB: PDF, Images, Word, Excel</p>
               </div>
               <div className="flex gap-3 pt-4">
                 <button type="button" onClick={() => setShowExpenseModal(false)} 
