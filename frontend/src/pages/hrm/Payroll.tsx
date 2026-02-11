@@ -279,16 +279,16 @@ export default function Payroll() {
                       {MONTHS[payroll.month - 1]} {payroll.year}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-right text-gray-900">
-                      ${payroll.baseSalary.toLocaleString()}
+                      ${Number(payroll.baseSalary).toLocaleString()}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-right text-green-600">
-                      +${payroll.bonuses.toLocaleString()}
+                      +${Number(payroll.bonuses).toLocaleString()}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-right text-gray-500">
-                      ${payroll.adjustments.toLocaleString()}
+                      ${Number(payroll.adjustments).toLocaleString()}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-right font-semibold text-gray-900">
-                      ${payroll.total.toLocaleString()}
+                      ${Number(payroll.total).toLocaleString()}
                     </td>
                     {canWrite && (
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm">
@@ -305,16 +305,16 @@ export default function Payroll() {
                 <tr>
                   <td colSpan={3} className="px-6 py-4 text-sm font-semibold text-gray-900">Total</td>
                   <td className="px-6 py-4 text-sm text-right font-semibold text-gray-900">
-                    ${payrolls.reduce((sum, p) => sum + p.baseSalary, 0).toLocaleString()}
+                    ${payrolls.reduce((sum, p) => sum + Number(p.baseSalary), 0).toLocaleString()}
                   </td>
                   <td className="px-6 py-4 text-sm text-right font-semibold text-green-600">
-                    +${payrolls.reduce((sum, p) => sum + p.bonuses, 0).toLocaleString()}
+                    +${payrolls.reduce((sum, p) => sum + Number(p.bonuses), 0).toLocaleString()}
                   </td>
                   <td className="px-6 py-4 text-sm text-right font-semibold text-gray-500">
-                    ${payrolls.reduce((sum, p) => sum + p.adjustments, 0).toLocaleString()}
+                    ${payrolls.reduce((sum, p) => sum + Number(p.adjustments), 0).toLocaleString()}
                   </td>
                   <td className="px-6 py-4 text-sm text-right font-bold text-gray-900">
-                    ${payrolls.reduce((sum, p) => sum + p.total, 0).toLocaleString()}
+                    ${payrolls.reduce((sum, p) => sum + Number(p.total), 0).toLocaleString()}
                   </td>
                   {canWrite && <td></td>}
                 </tr>
