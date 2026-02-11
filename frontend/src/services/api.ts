@@ -19,20 +19,24 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-// Handle token expiration
+// Handle errors - DON'T auto-logout, let the component handle it
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
-      window.location.href = '/login';
+    // Don't auto-logout on 401 - let the useAuth hook handle it
+    // Only redirect if we're NOT already on the login page
+    if (error.response?.status === 401 && !window.location.pathname.includes('/login')) {
+      // Check if the error is from a protected route, not login itself
+      const isLoginRequest = error.config?.url?.includes('/auth/login');
+      if (!isLoginRequest) {
+        console.log('Session expired, redirecting to login');
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        window.location.href = '/login';
+      }
     }
     return Promise.reject(error);
   }
 );
 
 export default api;
-
-
-
