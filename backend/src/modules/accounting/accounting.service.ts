@@ -20,8 +20,16 @@ export class AccountingService {
       throw new ForbiddenException('You can only create income in your branch');
     }
 
+    // Convert date string to Date object for Prisma
+    const data = {
+      branchId: createIncomeDto.branchId,
+      amount: createIncomeDto.amount,
+      date: new Date(createIncomeDto.date),
+      description: createIncomeDto.description || null,
+    };
+
     return this.prisma.income.create({
-      data: createIncomeDto,
+      data,
       include: { branch: true },
     });
   }
@@ -62,9 +70,15 @@ export class AccountingService {
       throw new ForbiddenException('You can only update income in your branch');
     }
 
+    // Convert date string to Date object if provided
+    const data: any = { ...updateIncomeDto };
+    if (updateIncomeDto.date) {
+      data.date = new Date(updateIncomeDto.date);
+    }
+
     return this.prisma.income.update({
       where: { id },
-      data: updateIncomeDto,
+      data,
       include: { branch: true },
     });
   }
@@ -94,8 +108,17 @@ export class AccountingService {
       throw new ForbiddenException('You can only create expenses in your branch');
     }
 
+    // Convert date string to Date object for Prisma
+    const data = {
+      branchId: createExpenseDto.branchId,
+      categoryId: createExpenseDto.categoryId,
+      amount: createExpenseDto.amount,
+      date: new Date(createExpenseDto.date),
+      description: createExpenseDto.description || null,
+    };
+
     return this.prisma.expense.create({
-      data: createExpenseDto,
+      data,
       include: { branch: true, category: true },
     });
   }
@@ -136,9 +159,15 @@ export class AccountingService {
       throw new ForbiddenException('You can only update expenses in your branch');
     }
 
+    // Convert date string to Date object if provided
+    const data: any = { ...updateExpenseDto };
+    if (updateExpenseDto.date) {
+      data.date = new Date(updateExpenseDto.date);
+    }
+
     return this.prisma.expense.update({
       where: { id },
-      data: updateExpenseDto,
+      data,
       include: { branch: true, category: true },
     });
   }
@@ -211,6 +240,3 @@ export class AccountingService {
     };
   }
 }
-
-
-

@@ -19,8 +19,17 @@ export class AttendanceService {
       throw new ForbiddenException('You can only create attendance in your branch');
     }
 
+    // Convert date string to Date object for Prisma
+    const data = {
+      employeeId: createAttendanceDto.employeeId,
+      branchId: createAttendanceDto.branchId,
+      date: new Date(createAttendanceDto.date),
+      status: createAttendanceDto.status,
+      notes: createAttendanceDto.notes || null,
+    };
+
     return this.prisma.attendance.create({
-      data: createAttendanceDto,
+      data,
       include: { employee: true, branch: true },
     });
   }
@@ -85,9 +94,15 @@ export class AttendanceService {
       throw new ForbiddenException('You can only update attendance in your branch');
     }
 
+    // Convert date string to Date object if provided
+    const data: any = { ...updateAttendanceDto };
+    if (updateAttendanceDto.date) {
+      data.date = new Date(updateAttendanceDto.date);
+    }
+
     return this.prisma.attendance.update({
       where: { id },
-      data: updateAttendanceDto,
+      data,
       include: { employee: true, branch: true },
     });
   }
@@ -114,6 +129,3 @@ export class AttendanceService {
     });
   }
 }
-
-
-
