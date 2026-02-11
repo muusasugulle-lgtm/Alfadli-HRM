@@ -44,8 +44,8 @@ export const useAuth = () => {
   const isStaff = user?.role === 'STAFF';
   const isOwner = user?.role === 'OWNER';
   
-  // canWrite: Admin, Manager, Staff can write; Owner is read-only
-  const canWrite = isAdmin || isManager || isStaff;
+  // canWrite: Admin and Staff can write; Manager is view-only
+  const canWrite = isAdmin || isStaff;
 
   return {
     user,

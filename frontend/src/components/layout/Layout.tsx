@@ -53,9 +53,6 @@ export default function Layout() {
                 <Link to="/accounting" className={linkClass('/accounting')}>
                   Accounting
                 </Link>
-                <Link to="/sales" className={linkClass('/sales')}>
-                  Sales
-                </Link>
                 {isAdmin && (
                   <Link to="/users" className={linkClass('/users')}>
                     Users
@@ -112,9 +109,6 @@ export default function Layout() {
           </Link>
           <Link to="/accounting" className={`px-3 py-1 rounded-full text-sm ${isActive('/accounting') ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600'}`}>
             Accounting
-          </Link>
-          <Link to="/sales" className={`px-3 py-1 rounded-full text-sm ${isActive('/sales') ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600'}`}>
-            Sales
           </Link>
           {isAdmin && (
             <Link to="/users" className={`px-3 py-1 rounded-full text-sm ${isActive('/users') ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600'}`}>

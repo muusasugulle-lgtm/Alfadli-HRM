@@ -120,12 +120,12 @@ export default function Sales() {
   const profitMargin = formData.amount > 0 ? ((formData.profit / formData.amount) * 100).toFixed(1) : '0';
 
   if (loading) {
-    return (
+  return (
       <div className="flex items-center justify-center h-64">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-      </div>
-    );
-  }
+    </div>
+  );
+}
 
   return (
     <div>

@@ -49,7 +49,6 @@ model Branch {
   employeeRights EmployeeRights[]
   incomes     Income[]
   expenses    Expense[]
-  sales       Sale[]
 }
 
 // HRM Entities
@@ -148,22 +147,10 @@ model Income {
   @@index([date])
 }
 
-model ExpenseCategory {
-  id        String   @id @default(uuid())
-  name      String   @unique
-  description String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  expenses Expense[]
-}
-
 model Expense {
   id            String          @id @default(uuid())
   branchId      String
   branch        Branch          @relation(fields: [branchId], references: [id], onDelete: Cascade)
-  categoryId    String
-  category      ExpenseCategory @relation(fields: [categoryId], references: [id], onDelete: Restrict)
   amount        Decimal         @db.Decimal(10, 2)
   date          DateTime        @db.Date
   description   String?
@@ -174,21 +161,5 @@ model Expense {
 
   @@index([branchId])
   @@index([date])
-  @@index([categoryId])
 }
 
-// Sales Entities
-model Sale {
-  id        String   @id @default(uuid())
-  branchId  String
-  branch    Branch   @relation(fields: [branchId], references: [id], onDelete: Cascade)
-  amount    Decimal  @db.Decimal(10, 2)
-  profit    Decimal  @db.Decimal(10, 2)
-  date      DateTime @db.Date
-  note      String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@index([branchId])
-  @@index([date])
-}

@@ -113,7 +113,6 @@ export class AccountingService {
     // Convert date string to Date object for Prisma
     const data = {
       branchId: createExpenseDto.branchId,
-      categoryId: createExpenseDto.categoryId,
       amount: createExpenseDto.amount,
       date: new Date(createExpenseDto.date),
       description: createExpenseDto.description || null,
@@ -123,7 +122,7 @@ export class AccountingService {
 
     return this.prisma.expense.create({
       data,
-      include: { branch: true, category: true },
+      include: { branch: true },
     });
   }
 
@@ -146,7 +145,7 @@ export class AccountingService {
 
     return this.prisma.expense.findMany({
       where,
-      include: { branch: true, category: true },
+      include: { branch: true },
       orderBy: { date: 'desc' },
     });
   }
@@ -172,7 +171,7 @@ export class AccountingService {
     return this.prisma.expense.update({
       where: { id },
       data,
-      include: { branch: true, category: true },
+      include: { branch: true },
     });
   }
 
@@ -189,23 +188,6 @@ export class AccountingService {
     }
 
     return this.prisma.expense.delete({ where: { id } });
-  }
-
-  // Expense Categories (Admin only)
-  async createCategory(name: string, description?: string, userRole?: Role) {
-    if (userRole !== Role.ADMIN) {
-      throw new ForbiddenException('Only admins can create expense categories');
-    }
-
-    return this.prisma.expenseCategory.create({
-      data: { name, description },
-    });
-  }
-
-  async findAllCategories() {
-    return this.prisma.expenseCategory.findMany({
-      orderBy: { name: 'asc' },
-    });
   }
 
   // Profit/Loss calculation

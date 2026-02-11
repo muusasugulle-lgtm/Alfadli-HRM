@@ -89,19 +89,6 @@ export class AccountingController {
     return this.accountingService.removeExpense(id, user.role, user.branchId);
   }
 
-  // Expense Categories
-  @Post('expense-category')
-  @UseGuards(RolesGuard)
-  @Roles(Role.ADMIN)
-  createCategory(@Body() body: { name: string; description?: string }, @CurrentUser() user: any) {
-    return this.accountingService.createCategory(body.name, body.description, user.role);
-  }
-
-  @Get('expense-category')
-  findAllCategories() {
-    return this.accountingService.findAllCategories();
-  }
-
   // Profit/Loss
   @Get('profit-loss')
   getProfitLoss(

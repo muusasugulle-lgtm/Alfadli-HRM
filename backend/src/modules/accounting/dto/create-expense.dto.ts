@@ -5,9 +5,6 @@ export class CreateExpenseDto {
   @IsString()
   branchId: string;
 
-  @IsString()
-  categoryId: string;
-
   @IsNumber()
   @Type(() => Number)
   amount: number;

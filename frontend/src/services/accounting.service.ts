@@ -19,7 +19,6 @@ export interface Income {
 export interface Expense {
   id: string;
   branchId: string;
-  categoryId: string;
   amount: number;
   date: string;
   description?: string;
@@ -29,18 +28,8 @@ export interface Expense {
     id: string;
     name: string;
   };
-  category: {
-    id: string;
-    name: string;
-  };
   createdAt: string;
   updatedAt: string;
-}
-
-export interface ExpenseCategory {
-  id: string;
-  name: string;
-  description?: string;
 }
 
 export interface CreateIncomeDto {
@@ -54,7 +43,6 @@ export interface CreateIncomeDto {
 
 export interface CreateExpenseDto {
   branchId: string;
-  categoryId: string;
   amount: number;
   date: string;
   description?: string;
@@ -66,7 +54,6 @@ export interface ProfitLoss {
   totalIncome: number;
   totalExpense: number;
   netProfit: number;
-  profit?: number;
 }
 
 export const accountingService = {
@@ -120,17 +107,6 @@ export const accountingService = {
     await api.delete(`/accounting/expense/${id}`);
   },
 
-  // Categories
-  async getCategories(): Promise<ExpenseCategory[]> {
-    const response = await api.get<ExpenseCategory[]>('/accounting/expense-category');
-    return response.data;
-  },
-
-  async createCategory(name: string, description?: string): Promise<ExpenseCategory> {
-    const response = await api.post<ExpenseCategory>('/accounting/expense-category', { name, description });
-    return response.data;
-  },
-
   // Profit/Loss
   async getProfitLoss(branchId?: string, startDate?: string, endDate?: string): Promise<ProfitLoss> {
     const params = new URLSearchParams();
@@ -139,7 +115,6 @@ export const accountingService = {
     if (endDate) params.append('endDate', endDate);
     const query = params.toString() ? `?${params.toString()}` : '';
     const response = await api.get<any>(`/accounting/profit-loss${query}`);
-    // Map backend 'profit' to frontend 'netProfit'
     return {
       totalIncome: response.data.totalIncome || 0,
       totalExpense: response.data.totalExpense || 0,
