@@ -3,6 +3,7 @@ import { ValidationPipe } from '@nestjs/common';
 import { AppModule } from './app.module';
 import { PrismaClient } from '@prisma/client';
 import * as bcrypt from 'bcryptjs';
+import * as express from 'express';
 
 async function seedDatabase() {
   const prisma = new PrismaClient();
@@ -36,6 +37,10 @@ async function seedDatabase() {
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+  
+  // Increase body size limit for file uploads (10MB)
+  app.use(express.json({ limit: '10mb' }));
+  app.use(express.urlencoded({ limit: '10mb', extended: true }));
   
   // Enable CORS for frontend (allow all origins in production for now)
   app.enableCors({
