@@ -5,6 +5,8 @@ import { PrismaClient } from '@prisma/client';
 import * as bcrypt from 'bcryptjs';
 import * as express from 'express';
 
+// Force rebuild: 2026-02-11 - Database schema sync (removed categoryId from expenses)
+
 async function seedDatabase() {
   const prisma = new PrismaClient();
   try {
