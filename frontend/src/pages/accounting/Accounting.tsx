@@ -122,6 +122,22 @@ export default function Accounting() {
 
   const handleIncomeSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError(null);
+    
+    // Validation
+    if (!incomeForm.branchId) {
+      setError('Please select a branch');
+      return;
+    }
+    if (!incomeForm.amount || incomeForm.amount <= 0) {
+      setError('Please enter a valid amount');
+      return;
+    }
+    if (!incomeForm.date) {
+      setError('Please select a date');
+      return;
+    }
+    
     try {
       if (editingIncome) {
         await accountingService.updateIncome(editingIncome.id, incomeForm);
@@ -134,12 +150,30 @@ export default function Accounting() {
       setIncomeFilePreview('');
       fetchData();
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to save income');
+      console.error('Income save error:', err);
+      const message = err.response?.data?.message || err.message || 'Failed to save income. Please try again.';
+      setError(message);
     }
   };
 
   const handleExpenseSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError(null);
+    
+    // Validation
+    if (!expenseForm.branchId) {
+      setError('Please select a branch');
+      return;
+    }
+    if (!expenseForm.amount || expenseForm.amount <= 0) {
+      setError('Please enter a valid amount');
+      return;
+    }
+    if (!expenseForm.date) {
+      setError('Please select a date');
+      return;
+    }
+    
     try {
       if (editingExpense) {
         await accountingService.updateExpense(editingExpense.id, expenseForm);
@@ -152,7 +186,9 @@ export default function Accounting() {
       setExpenseFilePreview('');
       fetchData();
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to save expense');
+      console.error('Expense save error:', err);
+      const message = err.response?.data?.message || err.message || 'Failed to save expense. Please try again.';
+      setError(message);
     }
   };
 

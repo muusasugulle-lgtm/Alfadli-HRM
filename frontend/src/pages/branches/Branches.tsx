@@ -36,6 +36,14 @@ export default function Branches() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError(null);
+    
+    // Validation
+    if (!formData.name || formData.name.trim() === '') {
+      setError('Branch name is required');
+      return;
+    }
+    
     try {
       if (editingBranch) {
         await branchesService.update(editingBranch.id, formData);
@@ -47,7 +55,9 @@ export default function Branches() {
       setFormData({ name: '', address: '', phone: '', email: '', isActive: true });
       fetchBranches();
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to save branch');
+      console.error('Branch save error:', err);
+      const message = err.response?.data?.message || err.message || 'Failed to save branch. Please try again.';
+      setError(message);
     }
   };
 
