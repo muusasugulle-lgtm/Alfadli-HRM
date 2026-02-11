@@ -133,14 +133,16 @@ model EmployeeRights {
 
 // Accounting Entities
 model Income {
-  id          String   @id @default(uuid())
-  branchId    String
-  branch      Branch   @relation(fields: [branchId], references: [id], onDelete: Cascade)
-  amount      Decimal  @db.Decimal(10, 2)
-  date        DateTime @db.Date
-  description String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id            String   @id @default(uuid())
+  branchId      String
+  branch        Branch   @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  amount        Decimal  @db.Decimal(10, 2)
+  date          DateTime @db.Date
+  description   String?
+  attachmentUrl String?  // URL to attached file (receipt, invoice, etc.)
+  attachmentName String? // Original filename
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
   @@index([branchId])
   @@index([date])
@@ -157,16 +159,18 @@ model ExpenseCategory {
 }
 
 model Expense {
-  id          String          @id @default(uuid())
-  branchId    String
-  branch      Branch          @relation(fields: [branchId], references: [id], onDelete: Cascade)
-  categoryId  String
-  category    ExpenseCategory @relation(fields: [categoryId], references: [id], onDelete: Restrict)
-  amount      Decimal         @db.Decimal(10, 2)
-  date        DateTime        @db.Date
-  description String?
-  createdAt   DateTime        @default(now())
-  updatedAt   DateTime        @updatedAt
+  id            String          @id @default(uuid())
+  branchId      String
+  branch        Branch          @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  categoryId    String
+  category      ExpenseCategory @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  amount        Decimal         @db.Decimal(10, 2)
+  date          DateTime        @db.Date
+  description   String?
+  attachmentUrl String?  // URL to attached file (receipt, invoice, etc.)
+  attachmentName String? // Original filename
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
 
   @@index([branchId])
   @@index([date])

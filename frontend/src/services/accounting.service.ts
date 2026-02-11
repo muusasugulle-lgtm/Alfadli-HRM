@@ -6,6 +6,8 @@ export interface Income {
   amount: number;
   date: string;
   description?: string;
+  attachmentUrl?: string;
+  attachmentName?: string;
   branch: {
     id: string;
     name: string;
@@ -21,6 +23,8 @@ export interface Expense {
   amount: number;
   date: string;
   description?: string;
+  attachmentUrl?: string;
+  attachmentName?: string;
   branch: {
     id: string;
     name: string;
@@ -44,6 +48,8 @@ export interface CreateIncomeDto {
   amount: number;
   date: string;
   description?: string;
+  attachmentUrl?: string;
+  attachmentName?: string;
 }
 
 export interface CreateExpenseDto {
@@ -52,6 +58,8 @@ export interface CreateExpenseDto {
   amount: number;
   date: string;
   description?: string;
+  attachmentUrl?: string;
+  attachmentName?: string;
 }
 
 export interface ProfitLoss {

@@ -26,6 +26,8 @@ export class AccountingService {
       amount: createIncomeDto.amount,
       date: new Date(createIncomeDto.date),
       description: createIncomeDto.description || null,
+      attachmentUrl: createIncomeDto.attachmentUrl || null,
+      attachmentName: createIncomeDto.attachmentName || null,
     };
 
     return this.prisma.income.create({
@@ -115,6 +117,8 @@ export class AccountingService {
       amount: createExpenseDto.amount,
       date: new Date(createExpenseDto.date),
       description: createExpenseDto.description || null,
+      attachmentUrl: createExpenseDto.attachmentUrl || null,
+      attachmentName: createExpenseDto.attachmentName || null,
     };
 
     return this.prisma.expense.create({

@@ -31,6 +31,8 @@ export default function Accounting() {
     amount: 0,
     date: new Date().toISOString().split('T')[0],
     description: '',
+    attachmentUrl: '',
+    attachmentName: '',
   });
 
   const [expenseForm, setExpenseForm] = useState<CreateExpenseDto>({
@@ -39,9 +41,51 @@ export default function Accounting() {
     amount: 0,
     date: new Date().toISOString().split('T')[0],
     description: '',
+    attachmentUrl: '',
+    attachmentName: '',
   });
 
   const [categoryForm, setCategoryForm] = useState({ name: '', description: '' });
+  const [incomeFilePreview, setIncomeFilePreview] = useState<string>('');
+  const [expenseFilePreview, setExpenseFilePreview] = useState<string>('');
+
+  // Handle file upload for income
+  const handleIncomeFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      // Check file size (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        setError('File size must be less than 5MB');
+        return;
+      }
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const base64 = reader.result as string;
+        setIncomeForm({ ...incomeForm, attachmentUrl: base64, attachmentName: file.name });
+        setIncomeFilePreview(file.name);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  // Handle file upload for expense
+  const handleExpenseFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      // Check file size (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        setError('File size must be less than 5MB');
+        return;
+      }
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const base64 = reader.result as string;
+        setExpenseForm({ ...expenseForm, attachmentUrl: base64, attachmentName: file.name });
+        setExpenseFilePreview(file.name);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   useEffect(() => {
     fetchInitialData();
@@ -93,7 +137,8 @@ export default function Accounting() {
       }
       setShowIncomeModal(false);
       setEditingIncome(null);
-      setIncomeForm({ branchId: branches[0]?.id || '', amount: 0, date: new Date().toISOString().split('T')[0], description: '' });
+      setIncomeForm({ branchId: branches[0]?.id || '', amount: 0, date: new Date().toISOString().split('T')[0], description: '', attachmentUrl: '', attachmentName: '' });
+      setIncomeFilePreview('');
       fetchData();
     } catch (err: any) {
       setError(err.response?.data?.message || 'Failed to save income');
@@ -110,7 +155,8 @@ export default function Accounting() {
       }
       setShowExpenseModal(false);
       setEditingExpense(null);
-      setExpenseForm({ branchId: branches[0]?.id || '', categoryId: categories[0]?.id || '', amount: 0, date: new Date().toISOString().split('T')[0], description: '' });
+      setExpenseForm({ branchId: branches[0]?.id || '', categoryId: categories[0]?.id || '', amount: 0, date: new Date().toISOString().split('T')[0], description: '', attachmentUrl: '', attachmentName: '' });
+      setExpenseFilePreview('');
       fetchData();
     } catch (err: any) {
       setError(err.response?.data?.message || 'Failed to save expense');
@@ -171,13 +217,13 @@ export default function Accounting() {
         <h1 className="text-3xl font-bold text-gray-900">Accounting</h1>
         <div className="flex gap-2">
           {canWrite && activeTab === 'income' && (
-            <button onClick={() => { setEditingIncome(null); setIncomeForm({ branchId: branches[0]?.id || '', amount: 0, date: new Date().toISOString().split('T')[0], description: '' }); setShowIncomeModal(true); }}
+            <button onClick={() => { setEditingIncome(null); setIncomeForm({ branchId: branches[0]?.id || '', amount: 0, date: new Date().toISOString().split('T')[0], description: '', attachmentUrl: '', attachmentName: '' }); setIncomeFilePreview(''); setShowIncomeModal(true); }}
               className="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-lg flex items-center gap-2">
               + Add Income
             </button>
           )}
           {canWrite && activeTab === 'expenses' && (
-            <button onClick={() => { setEditingExpense(null); setExpenseForm({ branchId: branches[0]?.id || '', categoryId: categories[0]?.id || '', amount: 0, date: new Date().toISOString().split('T')[0], description: '' }); setShowExpenseModal(true); }}
+            <button onClick={() => { setEditingExpense(null); setExpenseForm({ branchId: branches[0]?.id || '', categoryId: categories[0]?.id || '', amount: 0, date: new Date().toISOString().split('T')[0], description: '', attachmentUrl: '', attachmentName: '' }); setExpenseFilePreview(''); setShowExpenseModal(true); }}
               className="bg-red-600 hover:bg-red-700 text-white font-semibold py-2 px-4 rounded-lg flex items-center gap-2">
               + Add Expense
             </button>
@@ -284,6 +330,7 @@ export default function Accounting() {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Branch</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Description</th>
+                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Attachment</th>
                   <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Amount</th>
                   {canWrite && <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Actions</th>}
                 </tr>
@@ -296,12 +343,24 @@ export default function Accounting() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{income.branch?.name}</td>
                     <td className="px-6 py-4 text-sm text-gray-500">{income.description || '-'}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-center">
+                      {income.attachmentUrl ? (
+                        <a href={income.attachmentUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800">
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+                          </svg>
+                          {income.attachmentName || 'View'}
+                        </a>
+                      ) : (
+                        <span className="text-gray-400">-</span>
+                      )}
+                    </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-right font-semibold text-green-600">
-                      +${income.amount.toLocaleString()}
+                      +${Number(income.amount).toLocaleString()}
                     </td>
                     {canWrite && (
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm">
-                        <button onClick={() => { setEditingIncome(income); setIncomeForm({ branchId: income.branchId, amount: income.amount, date: income.date.split('T')[0], description: income.description || '' }); setShowIncomeModal(true); }}
+                        <button onClick={() => { setEditingIncome(income); setIncomeForm({ branchId: income.branchId, amount: Number(income.amount), date: income.date.split('T')[0], description: income.description || '', attachmentUrl: income.attachmentUrl || '', attachmentName: income.attachmentName || '' }); setIncomeFilePreview(''); setShowIncomeModal(true); }}
                           className="text-blue-600 hover:text-blue-900 mr-3">Edit</button>
                         <button onClick={() => handleDeleteIncome(income.id)} className="text-red-600 hover:text-red-900">Delete</button>
                       </td>
@@ -337,6 +396,7 @@ export default function Accounting() {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Branch</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Category</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Description</th>
+                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Attachment</th>
                   <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Amount</th>
                   {canWrite && <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Actions</th>}
                 </tr>
@@ -350,12 +410,24 @@ export default function Accounting() {
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{expense.branch?.name}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{expense.category?.name}</td>
                     <td className="px-6 py-4 text-sm text-gray-500">{expense.description || '-'}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-center">
+                      {expense.attachmentUrl ? (
+                        <a href={expense.attachmentUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800">
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+                          </svg>
+                          {expense.attachmentName || 'View'}
+                        </a>
+                      ) : (
+                        <span className="text-gray-400">-</span>
+                      )}
+                    </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-right font-semibold text-red-600">
-                      -${expense.amount.toLocaleString()}
+                      -${Number(expense.amount).toLocaleString()}
                     </td>
                     {canWrite && (
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm">
-                        <button onClick={() => { setEditingExpense(expense); setExpenseForm({ branchId: expense.branchId, categoryId: expense.categoryId, amount: expense.amount, date: expense.date.split('T')[0], description: expense.description || '' }); setShowExpenseModal(true); }}
+                        <button onClick={() => { setEditingExpense(expense); setExpenseForm({ branchId: expense.branchId, categoryId: expense.categoryId, amount: Number(expense.amount), date: expense.date.split('T')[0], description: expense.description || '', attachmentUrl: expense.attachmentUrl || '', attachmentName: expense.attachmentName || '' }); setExpenseFilePreview(''); setShowExpenseModal(true); }}
                           className="text-blue-600 hover:text-blue-900 mr-3">Edit</button>
                         <button onClick={() => handleDeleteExpense(expense.id)} className="text-red-600 hover:text-red-900">Delete</button>
                       </td>
@@ -428,6 +500,31 @@ export default function Accounting() {
                   onChange={(e) => setIncomeForm({ ...incomeForm, description: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" rows={2} />
               </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Attachment (Receipt/Invoice)</label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="file"
+                    accept="image/*,.pdf,.doc,.docx"
+                    onChange={handleIncomeFileChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
+                  />
+                </div>
+                {incomeFilePreview && (
+                  <div className="mt-2 flex items-center gap-2 text-sm text-green-600">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                    <span>{incomeFilePreview}</span>
+                    <button type="button" onClick={() => { setIncomeFilePreview(''); setIncomeForm({ ...incomeForm, attachmentUrl: '', attachmentName: '' }); }} className="text-red-500 hover:text-red-700">×</button>
+                  </div>
+                )}
+                {editingIncome?.attachmentName && !incomeFilePreview && (
+                  <div className="mt-2 text-sm text-gray-500">
+                    Current: <a href={editingIncome.attachmentUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">{editingIncome.attachmentName}</a>
+                  </div>
+                )}
+              </div>
               <div className="flex gap-3 pt-4">
                 <button type="button" onClick={() => setShowIncomeModal(false)} className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50">Cancel</button>
                 <button type="submit" className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700">{editingIncome ? 'Update' : 'Add'}</button>
@@ -481,6 +578,31 @@ export default function Accounting() {
                 <textarea value={expenseForm.description}
                   onChange={(e) => setExpenseForm({ ...expenseForm, description: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" rows={2} />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Attachment (Receipt/Invoice)</label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="file"
+                    accept="image/*,.pdf,.doc,.docx"
+                    onChange={handleExpenseFileChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
+                  />
+                </div>
+                {expenseFilePreview && (
+                  <div className="mt-2 flex items-center gap-2 text-sm text-green-600">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                    <span>{expenseFilePreview}</span>
+                    <button type="button" onClick={() => { setExpenseFilePreview(''); setExpenseForm({ ...expenseForm, attachmentUrl: '', attachmentName: '' }); }} className="text-red-500 hover:text-red-700">×</button>
+                  </div>
+                )}
+                {editingExpense?.attachmentName && !expenseFilePreview && (
+                  <div className="mt-2 text-sm text-gray-500">
+                    Current: <a href={editingExpense.attachmentUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">{editingExpense.attachmentName}</a>
+                  </div>
+                )}
               </div>
               <div className="flex gap-3 pt-4">
                 <button type="button" onClick={() => setShowExpenseModal(false)} className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50">Cancel</button>
