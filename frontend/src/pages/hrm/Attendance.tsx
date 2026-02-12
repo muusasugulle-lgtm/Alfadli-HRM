@@ -116,17 +116,17 @@ export default function Attendance() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="text-gray-500">Loading attendance...</div>
+        <div className="w-12 h-12 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin"></div>
       </div>
     );
   }
 
   return (
-    <div>
-      <div className="flex justify-between items-center mb-6">
+    <div className="space-y-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Attendance</h1>
-          <p className="text-gray-600 mt-1">Manage employee attendance</p>
+          <h1 className="text-2xl font-bold text-gray-900">📅 Attendance</h1>
+          <p className="text-gray-500 mt-1">Manage employee attendance records</p>
         </div>
         <div className="flex gap-4 items-center">
           {isOwner && (
